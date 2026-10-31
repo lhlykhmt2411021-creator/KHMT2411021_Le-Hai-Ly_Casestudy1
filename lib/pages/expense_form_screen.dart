@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
-import '../Models/expense.dart';
+import '../Models/transaction_model.dart';
 import '../Widgets/expense_form_section.dart';
+import '../database/database_helper.dart';
 
-/// "Màn hình" Thêm/Sửa giao dịch — chỉ là lớp Scaffold + AppBar bọc ngoài
-/// ExpenseFormSection. Nút back chỉ gọi onBack() (setState ở trang cha),
-/// KHÔNG dùng Navigator.pop() (đúng phạm vi Buổi 3 - chưa học Navigation thật).
 class ExpenseFormScreen extends StatelessWidget {
-  final Expense? initial;
-  final void Function(Expense expense) onSave;
-  final VoidCallback onBack;
+  final Transaction? initial;
 
-  const ExpenseFormScreen({
-    super.key,
-    required this.initial,
-    required this.onSave,
-    required this.onBack,
-  });
+  const ExpenseFormScreen({super.key, this.initial});
+
+  Future<void> _save(BuildContext context, Transaction transaction) async {
+    final navigator = Navigator.of(context);
+
+    if (initial == null) {
+      await DatabaseHelper.instance.insertTransaction(transaction);
+    } else {
+      await DatabaseHelper.instance.updateTransaction(transaction);
+    }
+
+    navigator.pop(true);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,16 +26,12 @@ class ExpenseFormScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: onBack,
-        ),
         title: Text(isEditing ? 'Sửa giao dịch' : 'Thêm giao dịch'),
       ),
       body: SafeArea(
         child: ExpenseFormSection(
           initial: initial,
-          onSave: onSave,
+          onSave: (transaction) => _save(context, transaction),
         ),
       ),
     );

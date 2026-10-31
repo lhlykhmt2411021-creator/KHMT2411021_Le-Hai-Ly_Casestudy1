@@ -1,4 +1,4 @@
-/// Model giao dịch dùng với SQLite (Buổi 5).
+/// Model giao dịch dùng với SQLite.
 /// Tên trường trùng tên cột trong bảng `transactions`.
 ///
 /// type : 'expense' (chi tiêu) hoặc 'income' (thu nhập)
@@ -19,6 +19,8 @@ class Transaction {
     required this.date,
     required this.category,
   });
+
+  bool get isIncome => type == 'income';
 
   Map<String, dynamic> toMap() {
     return {
@@ -42,3 +44,18 @@ class Transaction {
     );
   }
 }
+
+/// Danh mục theo loại giao dịch (dùng cho dropdown ở form).
+const List<String> expenseCategories = [
+  'Ăn uống',
+  'Di chuyển',
+  'Mua sắm',
+  'Học tập',
+  'Khác',
+];
+
+const List<String> incomeCategories = [
+  'Lương',
+  'Thưởng',
+  'Khác',
+];

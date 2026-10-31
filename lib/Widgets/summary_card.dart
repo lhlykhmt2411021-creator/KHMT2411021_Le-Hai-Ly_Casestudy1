@@ -1,29 +1,37 @@
 import 'package:flutter/material.dart';
+import '../utils/transaction_utils.dart';
 
 class SummarySection extends StatelessWidget {
-  const SummarySection({super.key});
+  final double income;
+  final double expense;
+
+  const SummarySection({
+    super.key,
+    required this.income,
+    required this.expense,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: const [
+      children: [
         Expanded(
           child: SummaryCard(
             title: 'TỔNG THU NHẬP',
-            amount: '8.000.000 đ',
+            amount: '${formatMoney(income)} đ',
             icon: Icons.arrow_downward,
-            iconColor: Color(0xFF2EAD4B),
-            backgroundColor: Color(0xFFEAF8EB),
+            iconColor: const Color(0xFF2EAD4B),
+            backgroundColor: const Color(0xFFEAF8EB),
           ),
         ),
-        SizedBox(width: 20),
+        const SizedBox(width: 20),
         Expanded(
           child: SummaryCard(
             title: 'TỔNG CHI TIÊU',
-            amount: '3.000.000 đ',
+            amount: '${formatMoney(expense)} đ',
             icon: Icons.arrow_upward,
-            iconColor: Color(0xFFE53935),
-            backgroundColor: Color(0xFFFFEFF0),
+            iconColor: const Color(0xFFE53935),
+            backgroundColor: const Color(0xFFFFEFF0),
           ),
         ),
       ],

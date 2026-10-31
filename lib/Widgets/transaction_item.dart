@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import '../Models/transaction.dart';
+import '../Models/transaction_model.dart';
+import '../utils/transaction_utils.dart';
 
 class TransactionHeader extends StatelessWidget {
-  const TransactionHeader({super.key});
+  final VoidCallback? onSeeAll;
+
+  const TransactionHeader({super.key, this.onSeeAll});
 
   @override
   Widget build(BuildContext context) {
@@ -10,14 +13,11 @@ class TransactionHeader extends StatelessWidget {
       children: [
         const Text(
           'Giao dịch gần đây',
-          style: TextStyle(
-            fontSize: 25,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
         ),
         const Spacer(),
         TextButton(
-          onPressed: () {},
+          onPressed: onSeeAll,
           child: const Text(
             'Xem tất cả',
             style: TextStyle(
@@ -33,73 +33,51 @@ class TransactionHeader extends StatelessWidget {
 }
 
 class TransactionList extends StatelessWidget {
-  const TransactionList({super.key});
+  final List<Transaction> transactions;
+  final void Function(Transaction transaction) onTap;
+  final void Function(Transaction transaction)? onLongPress;
 
-  static const List<TransactionData> transactions = [
-    TransactionData(
-      title: 'Ăn trưa',
-      category: 'Ăn uống',
-      date: '03/09/2024',
-      amount: '-50.000 đ',
-      icon: Icons.restaurant,
-      color: Color(0xFFFF6D00),
-    ),
-    TransactionData(
-      title: 'Xăng xe',
-      category: 'Di chuyển',
-      date: '03/09/2024',
-      amount: '-100.000 đ',
-      icon: Icons.directions_car,
-      color: Color(0xFF2196F3),
-    ),
-    TransactionData(
-      title: 'Lương tháng 9',
-      category: 'Thu nhập',
-      date: '01/09/2024',
-      amount: '+8.000.000 đ',
-      icon: Icons.attach_money,
-      color: Color(0xFF2EAD4B),
-    ),
-    TransactionData(
-      title: 'Mua sắm',
-      category: 'Mua sắm',
-      date: '31/08/2024',
-      amount: '-300.000 đ',
-      icon: Icons.shopping_cart,
-      color: Color(0xFF9C27B0),
-    ),
-    TransactionData(
-      title: 'Học phí',
-      category: 'Giáo dục',
-      date: '30/08/2024',
-      amount: '-500.000 đ',
-      icon: Icons.school,
-      color: Color(0xFF009688),
-    ),
-  ];
+  const TransactionList({
+    super.key,
+    required this.transactions,
+    required this.onTap,
+    this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
-      child: ListView.separated(
+      child: transactions.isEmpty
+          ? const Padding(
+        padding: EdgeInsets.all(32),
+        child: Center(
+          child: Text(
+            'Chưa có giao dịch nào.\nBấm nút + để thêm giao dịch đầu tiên.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, color: Color(0xFF667085)),
+          ),
+        ),
+      )
+          : ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: transactions.length,
-        separatorBuilder: (context, index) {
-          return const Divider(
-            height: 1,
-            indent: 20,
-            endIndent: 20,
-          );
-        },
+        separatorBuilder: (context, index) =>
+        const Divider(height: 1, indent: 20, endIndent: 20),
         itemBuilder: (context, index) {
-          return TransactionItem(
-            transaction: transactions[index],
+          final t = transactions[index];
+          return InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () => onTap(t),
+            onLongPress:
+            onLongPress == null ? null : () => onLongPress!(t),
+            child: TransactionItem(transaction: t),
           );
         },
       ),
@@ -108,27 +86,25 @@ class TransactionList extends StatelessWidget {
 }
 
 class TransactionItem extends StatelessWidget {
-  final TransactionData transaction;
+  final Transaction transaction;
 
-  const TransactionItem({
-    super.key,
-    required this.transaction,
-  });
+  const TransactionItem({super.key, required this.transaction});
 
   @override
   Widget build(BuildContext context) {
+    final isIncome = transaction.isIncome;
+    final amountText =
+        '${isIncome ? '+' : '-'}${formatMoney(transaction.amount)} đ';
+
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 18,
-        vertical: 20,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
       child: Row(
         children: [
           CircleAvatar(
             radius: 28,
-            backgroundColor: transaction.color,
+            backgroundColor: categoryColor(transaction.category),
             child: Icon(
-              transaction.icon,
+              categoryIcon(transaction.category),
               color: Colors.white,
               size: 28,
             ),
@@ -140,6 +116,8 @@ class TransactionItem extends StatelessWidget {
               children: [
                 Text(
                   transaction.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -160,7 +138,7 @@ class TransactionItem extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      transaction.date,
+                      formatDateIso(transaction.date),
                       style: const TextStyle(
                         fontSize: 14,
                         color: Color(0xFF667085),
@@ -173,11 +151,11 @@ class TransactionItem extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Text(
-            transaction.amount,
+            amountText,
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.bold,
-              color: transaction.amount.startsWith('+')
+              color: isIncome
                   ? const Color(0xFF2EAD4B)
                   : const Color(0xFFE53935),
             ),

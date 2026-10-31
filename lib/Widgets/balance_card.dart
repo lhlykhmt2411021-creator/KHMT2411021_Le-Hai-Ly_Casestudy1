@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import '../utils/transaction_utils.dart';
 
 class BalanceCard extends StatelessWidget {
-  const BalanceCard({super.key});
+  final double balance;
+
+  const BalanceCard({super.key, required this.balance});
 
   @override
   Widget build(BuildContext context) {
@@ -41,9 +44,9 @@ class BalanceCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 22),
-                const Text(
-                  '5.000.000 đ',
-                  style: TextStyle(
+                Text(
+                  formatBalance(balance),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 44,
                     fontWeight: FontWeight.bold,

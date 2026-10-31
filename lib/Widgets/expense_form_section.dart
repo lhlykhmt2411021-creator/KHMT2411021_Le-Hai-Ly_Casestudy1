@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
-import '../Models/expense.dart';
+import 'package:flutter/services.dart';
+import '../Models/transaction_model.dart';
+import '../utils/transaction_utils.dart';
 
-/// Chỉ chứa PHẦN NỘI DUNG form nhập liệu (không có Scaffold/AppBar) —
-/// được nhúng vào bên trong ExpenseFormScreen.
-/// Dùng CHUNG cho cả "Thêm giao dịch" và "Sửa giao dịch":
-/// - initial == null  -> chế độ Thêm (các trường để trống)
-/// - initial != null  -> chế độ Sửa (điền sẵn dữ liệu cũ)
 class ExpenseFormSection extends StatefulWidget {
-  final Expense? initial;
-  final void Function(Expense expense) onSave;
+  final Transaction? initial;
+  final void Function(Transaction transaction) onSave;
 
   const ExpenseFormSection({
     super.key,
@@ -26,25 +23,34 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
   final _noteController = TextEditingController();
   final _dateController = TextEditingController();
 
+  late bool _isExpenseType;
   late String _selectedCategory;
   late DateTime _selectedDate;
 
-  // Toggle Chi tiêu / Thu nhập: chỉ đổi giao diện, CHƯA lưu vào Expense
-  // (giữ đúng model gốc tài liệu: id/title/amount/category/date).
-  bool _isExpenseType = true;
+  List<String> get _categories =>
+      _isExpenseType ? expenseCategories : incomeCategories;
 
   @override
   void initState() {
     super.initState();
     final initial = widget.initial;
-    _selectedCategory = initial?.category ?? expenseCategories.first;
-    _selectedDate = initial?.date ?? DateTime.now();
+
+    _isExpenseType = initial == null ? true : !initial.isIncome;
+    _selectedDate = initial == null
+        ? DateTime.now()
+        : (DateTime.tryParse(initial.date) ?? DateTime.now());
 
     if (initial != null) {
       _amountController.text = initial.amount.toStringAsFixed(0);
-      _noteController.text = initial.note;
+      _noteController.text =
+      initial.title == initial.category ? '' : initial.title;
+      _selectedCategory = _categories.contains(initial.category)
+          ? initial.category
+          : _categories.first;
+    } else {
+      _selectedCategory = _categories.first;
     }
-    _dateController.text = _formatDate(_selectedDate);
+    _dateController.text = formatDate(_selectedDate);
   }
 
   @override
@@ -55,10 +61,13 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
     super.dispose();
   }
 
-  String _formatDate(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    return '$day/$month/${date.year}';
+  void _changeType(bool isExpense) {
+    setState(() {
+      _isExpenseType = isExpense;
+      if (!_categories.contains(_selectedCategory)) {
+        _selectedCategory = _categories.first;
+      }
+    });
   }
 
   Future<void> _pickDate() async {
@@ -66,31 +75,31 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
       context: context,
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+      lastDate: DateTime(2100),
     );
     if (picked != null) {
       setState(() {
         _selectedDate = picked;
-        _dateController.text = _formatDate(picked);
+        _dateController.text = formatDate(picked);
       });
     }
   }
 
   void _submit() {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
-    final expense = Expense(
-      id: widget.initial?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      title: _selectedCategory, // dùng Danh mục làm title mặc định
-      amount: double.tryParse(_amountController.text) ?? 0,
+    final note = _noteController.text.trim();
+
+    final transaction = Transaction(
+      id: widget.initial?.id,
+      title: note.isEmpty ? _selectedCategory : note,
+      amount: double.parse(_amountController.text),
+      type: _isExpenseType ? 'expense' : 'income',
+      date: toIsoDate(_selectedDate),
       category: _selectedCategory,
-      date: _selectedDate,
-      note: _noteController.text,
     );
 
-    widget.onSave(expense);
+    widget.onSave(transaction);
   }
 
   @override
@@ -110,7 +119,7 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
                       label: 'Chi tiêu',
                       selected: _isExpenseType,
                       color: Colors.red,
-                      onTap: () => setState(() => _isExpenseType = true),
+                      onTap: () => _changeType(true),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -119,32 +128,36 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
                       label: 'Thu nhập',
                       selected: !_isExpenseType,
                       color: Colors.green,
-                      onTap: () => setState(() => _isExpenseType = false),
+                      onTap: () => _changeType(false),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
-
-              const Text('Danh mục', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Danh mục',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
+                key: ValueKey(_isExpenseType),
                 value: _selectedCategory,
-                items: expenseCategories.map((category) {
-                  return DropdownMenuItem(value: category, child: Text(category));
+                items: _categories.map((category) {
+                  return DropdownMenuItem(
+                      value: category, child: Text(category));
                 }).toList(),
                 onChanged: (value) {
                   setState(() => _selectedCategory = value!);
                 },
               ),
               const SizedBox(height: 20),
-
-              const Text('Số tiền', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Số tiền',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
+                  hintText: 'Nhập số tiền',
                   suffixText: 'đ',
                   border: OutlineInputBorder(),
                 ),
@@ -160,8 +173,8 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
                 },
               ),
               const SizedBox(height: 20),
-
-              const Text('Ngày giao dịch', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Ngày giao dịch',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _dateController,
@@ -173,8 +186,8 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
                 onTap: _pickDate,
               ),
               const SizedBox(height: 20),
-
-              const Text('Ghi chú', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Ghi chú',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _noteController,
@@ -185,16 +198,18 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
                 ),
               ),
               const SizedBox(height: 32),
-
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _submit,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.blue,
+                    backgroundColor: const Color(0xFF1769E0),
                   ),
-                  child: const Text('Lưu', style: TextStyle(fontSize: 16, color: Colors.white)),
+                  child: const Text(
+                    'Lưu',
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
                 ),
               ),
             ],
