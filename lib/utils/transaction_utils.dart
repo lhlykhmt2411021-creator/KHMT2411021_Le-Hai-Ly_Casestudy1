@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../constants/category_constants.dart';
+
 /// 1500000 -> "1.500.000"
 String formatMoney(double value) {
   final digits = value.round().abs().toString();
@@ -38,38 +40,9 @@ String toIsoDate(DateTime d) {
 }
 
 IconData categoryIcon(String category) {
-  switch (category) {
-    case 'Ăn uống':
-      return Icons.restaurant;
-    case 'Di chuyển':
-      return Icons.directions_car;
-    case 'Mua sắm':
-      return Icons.shopping_cart;
-    case 'Học tập':
-      return Icons.school;
-    case 'Lương':
-      return Icons.attach_money;
-    case 'Thưởng':
-      return Icons.card_giftcard;
-    default:
-      return Icons.category;
-  }
+  return CategoryConstants.getIcon(category);
 }
 
 Color categoryColor(String category) {
-  switch (category) {
-    case 'Ăn uống':
-      return const Color(0xFFFF6D00);
-    case 'Di chuyển':
-      return const Color(0xFF2196F3);
-    case 'Mua sắm':
-      return const Color(0xFF9C27B0);
-    case 'Học tập':
-      return const Color(0xFF009688);
-    case 'Lương':
-    case 'Thưởng':
-      return const Color(0xFF2EAD4B);
-    default:
-      return const Color(0xFF78909C);
-  }
+  return CategoryConstants.getColor(category);
 }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Màn hình chào mừng (Buổi 2). Hiện main.dart đang trỏ thẳng vào
-/// ExpenseListPage nên file này chưa được gọi tới — giữ lại nếu bạn
-/// còn cần nộp/ trình bày lại giao diện Buổi 2.
+import 'home_page.dart';
+
+/// Màn hình chào mừng (Buổi 2).
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
 
@@ -22,6 +22,21 @@ class WelcomePage extends StatelessWidget {
                     Image.asset(
                       'assets/images/logo.png',
                       width: 140,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEBF3FF),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: const Icon(
+                            Icons.account_balance_wallet,
+                            size: 70,
+                            color: Color(0xFF1769E0),
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 32),
                     const Text(
@@ -51,7 +66,10 @@ class WelcomePage extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    print('Bắt đầu');
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const HomePage()),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1967D2),
@@ -64,10 +82,7 @@ class WelcomePage extends StatelessWidget {
                   ),
                   child: const Text(
                     'Bắt đầu',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../Models/transaction_model.dart';
+
+import '../constants/category_constants.dart';
+import '../models/transaction.dart';
 import '../utils/transaction_utils.dart';
 
 class ExpenseFormSection extends StatefulWidget {
   final Transaction? initial;
-  final void Function(Transaction transaction) onSave;
+  final Future<void> Function(Transaction transaction) onSave;
 
   const ExpenseFormSection({
     super.key,
@@ -24,11 +26,20 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
   final _dateController = TextEditingController();
 
   late bool _isExpenseType;
-  late String _selectedCategory;
+  String _selectedCategory = '';
   late DateTime _selectedDate;
+  bool _isSaving = false;
 
-  List<String> get _categories =>
-      _isExpenseType ? expenseCategories : incomeCategories;
+  List<String> get _categories {
+    final names = CategoryConstants.namesFor(
+      _isExpenseType ? 'expense' : 'income',
+    );
+    // Giữ danh mục cũ (dữ liệu đã lưu) để không bị lỗi dropdown.
+    if (_selectedCategory.isNotEmpty && !names.contains(_selectedCategory)) {
+      return [...names, _selectedCategory];
+    }
+    return names;
+  }
 
   @override
   void initState() {
@@ -42,11 +53,12 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
 
     if (initial != null) {
       _amountController.text = initial.amount.toStringAsFixed(0);
+      final category = CategoryConstants.normalizeCategory(initial.category);
+      _selectedCategory = category;
       _noteController.text =
-      initial.title == initial.category ? '' : initial.title;
-      _selectedCategory = _categories.contains(initial.category)
-          ? initial.category
-          : _categories.first;
+          initial.title == initial.category || initial.title == category
+          ? ''
+          : initial.title;
     } else {
       _selectedCategory = _categories.first;
     }
@@ -64,8 +76,11 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
   void _changeType(bool isExpense) {
     setState(() {
       _isExpenseType = isExpense;
-      if (!_categories.contains(_selectedCategory)) {
-        _selectedCategory = _categories.first;
+      final names = CategoryConstants.namesFor(
+        isExpense ? 'expense' : 'income',
+      );
+      if (!names.contains(_selectedCategory)) {
+        _selectedCategory = names.first;
       }
     });
   }
@@ -85,11 +100,10 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
     }
   }
 
-  void _submit() {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _submit() async {
+    if (_isSaving || !_formKey.currentState!.validate()) return;
 
     final note = _noteController.text.trim();
-
     final transaction = Transaction(
       id: widget.initial?.id,
       title: note.isEmpty ? _selectedCategory : note,
@@ -99,7 +113,14 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
       category: _selectedCategory,
     );
 
-    widget.onSave(transaction);
+    setState(() => _isSaving = true);
+    try {
+      await widget.onSave(transaction);
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
   @override
@@ -118,7 +139,7 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
                     child: _buildTypeButton(
                       label: 'Chi tiêu',
                       selected: _isExpenseType,
-                      color: Colors.red,
+                      color: const Color(0xFFFF5252),
                       onTap: () => _changeType(true),
                     ),
                   ),
@@ -127,30 +148,49 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
                     child: _buildTypeButton(
                       label: 'Thu nhập',
                       selected: !_isExpenseType,
-                      color: Colors.green,
+                      color: const Color(0xFF2EAD4B),
                       onTap: () => _changeType(false),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
-              const Text('Danh mục',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Danh mục',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 key: ValueKey(_isExpenseType),
-                value: _selectedCategory,
+                initialValue: _selectedCategory,
+                decoration: const InputDecoration(border: OutlineInputBorder()),
                 items: _categories.map((category) {
                   return DropdownMenuItem(
-                      value: category, child: Text(category));
+                    value: category,
+                    child: Row(
+                      children: [
+                        Icon(
+                          CategoryConstants.getIcon(category),
+                          color: CategoryConstants.getColor(category),
+                          size: 22,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(category),
+                      ],
+                    ),
+                  );
                 }).toList(),
                 onChanged: (value) {
-                  setState(() => _selectedCategory = value!);
+                  if (value != null) {
+                    setState(() => _selectedCategory = value);
+                  }
                 },
               ),
               const SizedBox(height: 20),
-              const Text('Số tiền',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Số tiền',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _amountController,
@@ -173,8 +213,10 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
                 },
               ),
               const SizedBox(height: 20),
-              const Text('Ngày giao dịch',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Ngày giao dịch',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _dateController,
@@ -186,8 +228,10 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
                 onTap: _pickDate,
               ),
               const SizedBox(height: 20),
-              const Text('Ghi chú',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Ghi chú',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _noteController,
@@ -201,15 +245,25 @@ class _ExpenseFormSectionState extends State<ExpenseFormSection> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _submit,
+                  onPressed: _isSaving ? null : _submit,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     backgroundColor: const Color(0xFF1769E0),
+                    disabledBackgroundColor: const Color(0xFF93C5FD),
                   ),
-                  child: const Text(
-                    'Lưu',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
-                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Lưu',
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
                 ),
               ),
             ],

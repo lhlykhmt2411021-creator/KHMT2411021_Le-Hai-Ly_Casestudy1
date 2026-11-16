@@ -3,14 +3,16 @@ import 'package:path/path.dart';
 // với model Transaction của project.
 import 'package:sqflite/sqflite.dart' hide Transaction;
 
-import '../Models/transaction_model.dart';
+import '../models/transaction.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._internal();
 
-  static Database? _database;
-
   DatabaseHelper._internal();
+
+  factory DatabaseHelper() => instance;
+
+  static Database? _database;
 
   Future<Database> get database async {
     if (_database != null) {
@@ -24,16 +26,9 @@ class DatabaseHelper {
   Future<Database> _initDatabase() async {
     final databasePath = await getDatabasesPath();
 
-    final path = join(
-      databasePath,
-      'expense.db',
-    );
+    final path = join(databasePath, 'expense.db');
 
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _onCreate,
-    );
+    return await openDatabase(path, version: 1, onCreate: _onCreate);
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -53,18 +48,40 @@ class DatabaseHelper {
   Future<int> insertTransaction(Transaction transaction) async {
     final db = await database;
 
-    return await db.insert(
-      'transactions',
-      transaction.toMap(),
-    );
+    return await db.insert('transactions', transaction.toMap());
   }
 
   // READ: mới nhất lên đầu (cùng ngày thì id lớn hơn đứng trước)
   Future<List<Transaction>> getTransactions() async {
     final db = await database;
 
+    final maps = await db.query('transactions', orderBy: 'date DESC, id DESC');
+
+    return maps.map((map) => Transaction.fromMap(map)).toList();
+  }
+
+  // READ: tìm giao dịch theo từ khóa tiêu đề (LIKE)
+  Future<List<Transaction>> searchTransactions(String keyword) async {
+    final db = await database;
+
     final maps = await db.query(
       'transactions',
+      where: 'title LIKE ?',
+      whereArgs: ['%$keyword%'],
+      orderBy: 'date DESC, id DESC',
+    );
+
+    return maps.map((map) => Transaction.fromMap(map)).toList();
+  }
+
+  // READ: lọc giao dịch theo loại ('income' hoặc 'expense')
+  Future<List<Transaction>> getTransactionsByType(String type) async {
+    final db = await database;
+
+    final maps = await db.query(
+      'transactions',
+      where: 'type = ?',
+      whereArgs: [type],
       orderBy: 'date DESC, id DESC',
     );
 
@@ -91,10 +108,15 @@ class DatabaseHelper {
   Future<int> deleteTransaction(int id) async {
     final db = await database;
 
-    return await db.delete(
-      'transactions',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('transactions', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Đóng kết nối database (dùng khi test hoặc khi thoát app).
+  Future<void> close() async {
+    final db = _database;
+    if (db != null && db.isOpen) {
+      await db.close();
+      _database = null;
+    }
   }
 }

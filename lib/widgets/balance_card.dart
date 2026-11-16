@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
+
 import '../utils/transaction_utils.dart';
 
 class BalanceCard extends StatelessWidget {
   final double balance;
+  final bool showBalance;
+  final VoidCallback? onToggleVisibility;
 
-  const BalanceCard({super.key, required this.balance});
+  const BalanceCard({
+    super.key,
+    required this.balance,
+    this.showBalance = true,
+    this.onToggleVisibility,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,10 +23,7 @@ class BalanceCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF4D8CF7),
-            Color(0xFF1769E0),
-          ],
+          colors: [Color(0xFF4D8CF7), Color(0xFF1769E0)],
         ),
         borderRadius: BorderRadius.circular(28),
       ),
@@ -30,8 +35,8 @@ class BalanceCard extends StatelessWidget {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Text(
+                  children: [
+                    const Text(
                       'SỐ DƯ HIỆN TẠI',
                       style: TextStyle(
                         color: Colors.white,
@@ -39,13 +44,20 @@ class BalanceCard extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(width: 12),
-                    Icon(Icons.visibility, color: Colors.white, size: 28),
+                    const SizedBox(width: 12),
+                    IconButton(
+                      onPressed: onToggleVisibility,
+                      icon: Icon(
+                        showBalance ? Icons.visibility : Icons.visibility_off,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 22),
                 Text(
-                  formatBalance(balance),
+                  showBalance ? formatBalance(balance) : '••••••••',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 44,
@@ -82,7 +94,7 @@ class BalanceCard extends StatelessWidget {
               width: 130,
               height: 130,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
+                color: Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(30),
               ),
               child: const Icon(
@@ -102,7 +114,7 @@ class BalanceCard extends StatelessWidget {
       width: 10,
       height: 10,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.35),
+        color: Colors.white.withValues(alpha: 0.35),
         shape: BoxShape.circle,
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../utils/transaction_utils.dart';
 
 class SummarySection extends StatelessWidget {
@@ -69,7 +70,7 @@ class SummaryCard extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 28,
-            backgroundColor: iconColor.withOpacity(0.18),
+            backgroundColor: iconColor.withValues(alpha: 0.18),
             child: Icon(icon, color: iconColor, size: 30),
           ),
           const SizedBox(height: 12),
@@ -82,12 +83,16 @@ class SummaryCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            amount,
-            style: TextStyle(
-              fontSize: 19,
-              fontWeight: FontWeight.bold,
-              color: iconColor,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              amount,
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.bold,
+                color: iconColor,
+              ),
             ),
           ),
         ],

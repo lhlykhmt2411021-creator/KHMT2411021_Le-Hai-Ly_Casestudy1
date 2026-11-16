@@ -22,6 +22,8 @@ class Transaction {
 
   bool get isIncome => type == 'income';
 
+  bool get isExpense => type == 'expense';
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -43,19 +45,28 @@ class Transaction {
       category: map['category'] as String,
     );
   }
+
+  Transaction copyWith({
+    int? id,
+    String? title,
+    double? amount,
+    String? type,
+    String? date,
+    String? category,
+  }) {
+    return Transaction(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      amount: amount ?? this.amount,
+      type: type ?? this.type,
+      date: date ?? this.date,
+      category: category ?? this.category,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'Transaction(id: $id, title: $title, amount: $amount, '
+        'type: $type, date: $date, category: $category)';
+  }
 }
-
-/// Danh mục theo loại giao dịch (dùng cho dropdown ở form).
-const List<String> expenseCategories = [
-  'Ăn uống',
-  'Di chuyển',
-  'Mua sắm',
-  'Học tập',
-  'Khác',
-];
-
-const List<String> incomeCategories = [
-  'Lương',
-  'Thưởng',
-  'Khác',
-];
